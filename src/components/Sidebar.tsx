@@ -1,4 +1,4 @@
-import { Archive, ChevronDown, Download, LayoutDashboard, Plus, Settings, Upload } from "lucide-react";
+import { Archive, Download, LayoutDashboard, Plus, Settings, Upload } from "lucide-react";
 import type { Board } from "../types";
 
 interface Props {
@@ -11,15 +11,7 @@ interface Props {
   onSettings: () => void;
 }
 
-export default function Sidebar({
-  boards,
-  activeBoardId,
-  onSelectBoard,
-  onAddBoard,
-  onExport,
-  onImport,
-  onSettings,
-}: Props) {
+export default function Sidebar({ boards, activeBoardId, onSelectBoard, onAddBoard, onExport, onImport, onSettings }: Props) {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -37,17 +29,10 @@ export default function Sidebar({
         </button>
         <div className="section-label">
           <span>Boards</span>
-          <button type="button" onClick={onAddBoard} aria-label="Add board">
-            <Plus size={16} />
-          </button>
+          <button type="button" onClick={onAddBoard} aria-label="Add board"><Plus size={16} /></button>
         </div>
         {boards.map((board) => (
-          <button
-            key={board.id}
-            className={`nav-item board-nav ${board.id === activeBoardId ? "selected" : ""}`}
-            type="button"
-            onClick={() => onSelectBoard(board.id)}
-          >
+          <button key={board.id} className={`nav-item board-nav ${board.id === activeBoardId ? "selected" : ""}`} type="button" onClick={() => onSelectBoard(board.id)}>
             <span className="board-dot" />
             <span className="truncate">{board.title}</span>
           </button>
@@ -55,20 +40,14 @@ export default function Sidebar({
       </nav>
 
       <div className="sidebar-bottom">
-        <button className="nav-item" type="button" onClick={onExport}>
-          <Download size={17} /> Export backup
-        </button>
-        <button className="nav-item" type="button" onClick={onImport}>
-          <Upload size={17} /> Import backup
-        </button>
-        <button className="nav-item" type="button" onClick={onSettings}>
-          <Settings size={17} /> Settings
-        </button>
+        <button className="nav-item" type="button" onClick={onExport}><Download size={17} /> Export backup</button>
+        <button className="nav-item" type="button" onClick={onImport}><Upload size={17} /> Import backup</button>
+        <button className="nav-item" type="button" onClick={onSettings}><Settings size={17} /> Settings</button>
         <div className="sidebar-tip">
           <Archive size={17} />
           <div>
-            <strong>Local storage</strong>
-            <span>Your data stays in this browser for now.</span>
+            <strong>Cloud workspace</strong>
+            <span>Changes sync to your Firebase account.</span>
           </div>
         </div>
       </div>
