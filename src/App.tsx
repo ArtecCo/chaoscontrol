@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { closestCenter, DndContext, DragEndEvent, DragOverlay, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { MoreVertical, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { AppData, Board, KanbanCard, Priority } from "./types";
 import { createInitialData, createId, exportData, importData, loadData, saveData } from "./data/storage";
+import { auth, firebaseConfigured } from "./firebase";
+import { saveUserData, subscribeToUserData } from "./data/firestore";
 import Sidebar from "./components/Sidebar";
 import Topbar from "./components/Topbar";
 import FilterBar from "./components/FilterBar";
@@ -14,7 +16,12 @@ import MobileNav from "./components/MobileNav";
 
 function App() {
   const [data, setData] = useState<AppData>(() => loadData());
-  const [search, setSearch] = useState("");
+  const [cloudReady, setCloudReady] = useState(!firebaseConfigured);
+  const [cloudError, setCloudError] = useState("");
+  const hydratedRef = useRef(!firebaseConfigured);
+  const lastSavedRef = useRef("");
+  const search = useState("")[0];
+  const [searchValue, setSearch] = useState("");
   const [priority, setPriority] = useState<Priority | "all">("all");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
@@ -25,20 +32,53 @@ function App() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   useEffect(() => {
+    if (!firebaseConfigured || !auth?.currentUser) return;
+    hydratedRef.current = false;
+    setCloudReady(false);
+    setCloudError("");
+
+    const unsubscribe = subscribeToUserData(
+      auth.currentUser.uid,
+      loadData(),
+      (remote) => {
+        lastSavedRef.current = JSON.stringify(remote);
+        setData(remote);
+        hydratedRef.current = true;
+        setCloudReady(true);
+      },
+      (error) => {
+        hydratedRef.current = false;
+        setCloudError(error.message);
+        setCloudReady(false);
+      },
+    );
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     saveData(data);
     document.documentElement.dataset.theme = data.theme;
+
+    if (!firebaseConfigured || !auth?.currentUser || !hydratedRef.current) return;
+    const serialized = JSON.stringify(data);
+    if (serialized === lastSavedRef.current) return;
+    lastSavedRef.current = serialized;
+    void saveUserData(auth.currentUser.uid, data).catch((error) => {
+      setCloudError(error instanceof Error ? error.message : "Cloud save failed.");
+    });
   }, [data]);
 
   const board = data.boards.find((item) => item.id === data.activeBoardId) ?? data.boards[0];
 
   const filteredCards = useMemo(() => {
     if (!board) return new Set<string>();
-    const query = search.trim().toLowerCase();
+    const query = searchValue.trim().toLowerCase();
     return new Set(Object.values(board.cards).filter((card) => {
       const searchMatch = !query || card.title.toLowerCase().includes(query) || card.description.toLowerCase().includes(query) || card.tags.some((tag) => tag.toLowerCase().includes(query));
       return searchMatch && (priority === "all" || card.priority === priority);
     }).map((card) => card.id));
-  }, [board, search, priority]);
+  }, [board, searchValue, priority]);
 
   const openCard = board?.cards[openCardId ?? ""] ?? null;
 
@@ -106,7 +146,7 @@ function App() {
     setOpenCardId(null);
   };
 
-  const onDragStart = (event: any) => {
+  const onDragStart = (event: { active: { id: string | number } }) => {
     const id = String(event.active.id);
     if (board.cards[id]) setDraggedCard(board.cards[id]);
   };
@@ -151,11 +191,13 @@ function App() {
       <Sidebar boards={data.boards} activeBoardId={board.id} onSelectBoard={selectBoard} onAddBoard={addBoard} onExport={() => exportData(data)} onImport={() => document.getElementById("backup-input")?.click()} onSettings={() => window.alert("Settings will be expanded in the next phase.")} />
       {mobileSidebar && <div className="mobile-sidebar-overlay" onClick={() => setMobileSidebar(false)}><div onClick={(e) => e.stopPropagation()} className="mobile-sidebar"><div className="mobile-sidebar-header"><strong>Your boards</strong><button className="icon-button" type="button" onClick={() => setMobileSidebar(false)}><X size={18} /></button></div>{data.boards.map((item) => <button className={`mobile-board ${item.id === board.id ? "selected" : ""}`} key={item.id} type="button" onClick={() => selectBoard(item.id)}><span className="board-dot" />{item.title}</button>)}<button className="mobile-board" type="button" onClick={addBoard}><Plus size={17} /> New board</button></div></div>}
       <main className="main-content">
-        <Topbar boardTitle={board.title} search={search} setSearch={setSearch} theme={data.theme} onToggleTheme={() => setData((current) => ({ ...current, theme: current.theme === "light" ? "dark" : "light" }))} onMenu={() => setMobileSidebar(true)} />
+        <Topbar boardTitle={board.title} search={searchValue} setSearch={setSearch} theme={data.theme} onToggleTheme={() => setData((current) => ({ ...current, theme: current.theme === "light" ? "dark" : "light" }))} onMenu={() => setMobileSidebar(true)} />
         <div className="page-content">
           <div className="page-heading"><div><div className="breadcrumb">Workspace / Boards / {board.title}</div><h1>{board.title}</h1><p>{board.description || "Organize your work and personal tasks."}</p></div><div className="progress-summary"><span>{completedCards}/{totalCards} done</span><div className="progress-track"><div style={{ width: `${progress}%` }} /></div><strong>{progress}%</strong></div></div>
+          {!cloudReady && firebaseConfigured ? <div className="filter-result">Connecting to your cloud workspace…</div> : null}
+          {cloudError ? <div className="filter-result">Cloud sync error: {cloudError}</div> : null}
           <FilterBar priority={priority} setPriority={setPriority} onAddTask={() => openAddTask()} onAddColumn={addColumn} />
-          {search || priority !== "all" ? <div className="filter-result">Showing {filteredCards.size} of {totalCards} tasks<button type="button" onClick={() => { setSearch(""); setPriority("all"); }}>Clear filters</button></div> : null}
+          {searchValue || priority !== "all" ? <div className="filter-result">Showing {filteredCards.size} of {totalCards} tasks<button type="button" onClick={() => { setSearch(""); setPriority("all"); }}>Clear filters</button></div> : null}
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragCancel={onDragCancel} onDragEnd={onDragEnd}>
             <div className="kanban-board">
               {board.columns.map((column) => { const cards = column.cardIds.map((id) => board.cards[id]).filter(Boolean).filter((card) => filteredCards.has(card.id)); return <SortableContext key={column.id} items={column.cardIds} strategy={verticalListSortingStrategy}><KanbanColumn column={column} cards={cards} onOpenCard={setOpenCardId} onAddCard={openAddTask} onDeleteColumn={deleteColumn} /></SortableContext>; })}
