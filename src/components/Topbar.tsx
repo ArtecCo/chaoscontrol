@@ -1,4 +1,4 @@
-import { Bell, Command, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
+import { Bell, Command, HelpCircle, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
 import { signOut } from "firebase/auth";
 import IconButton from "./IconButton";
 import { auth } from "../firebase";
@@ -9,10 +9,10 @@ export default function Topbar({ boardTitle, search, setSearch, theme, onToggleT
   const handleSignOut = async () => { if (auth) await signOut(auth); };
   return (
     <header className="topbar">
-      <div className="mobile-brand"><button className="mobile-menu" type="button" onClick={onMenu} aria-label="Open menu"><Menu size={19} /></button><strong>{boardTitle}</strong></div>
-      <div className="workspace-location"><span>Workspace</span><b>/</b><strong>{boardTitle}</strong></div>
-      <div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search issues, tags or descriptions..." aria-label="Search issues" /><span className="search-shortcut"><Command size={11} /> K</span>{search && <button onClick={() => setSearch("")} type="button">Clear</button>}</div>
-      <div className="top-actions"><IconButton label="Notifications"><Bell size={17} /></IconButton><IconButton label={theme === "light" ? "Use dark mode" : "Use light mode"} onClick={onToggleTheme}>{theme === "light" ? <Moon size={17} /> : <Sun size={17} />}</IconButton><button className="avatar avatar-button" type="button" onClick={handleSignOut} aria-label="Sign out" title="Sign out"><LogOut size={15} /></button></div>
+      <div className="mobile-brand"><button className="mobile-menu" type="button" onClick={onMenu} aria-label="Open menu"><Menu size={18} /></button><span className="mobile-brand-mark">C</span><strong>{boardTitle}</strong></div>
+      <div className="topbar-breadcrumb"><span>Projects</span><b>/</b><strong>{boardTitle}</strong></div>
+      <div className="global-search"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search issues" aria-label="Search issues" /><span className="search-shortcut"><Command size={10} /> K</span>{search && <button onClick={() => setSearch("")} type="button">Clear</button>}</div>
+      <div className="top-actions"><IconButton label="Help"><HelpCircle size={16} /></IconButton><IconButton label="Notifications"><Bell size={16} /></IconButton><IconButton label={theme === "light" ? "Use dark mode" : "Use light mode"} onClick={onToggleTheme}>{theme === "light" ? <Moon size={16} /> : <Sun size={16} />}</IconButton><button className="avatar avatar-button" type="button" onClick={handleSignOut} aria-label="Sign out" title="Sign out"><LogOut size={14} /></button></div>
     </header>
   );
 }
