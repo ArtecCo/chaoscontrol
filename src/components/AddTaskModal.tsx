@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { CheckSquare, Plus, Tag, X } from "lucide-react";
 import type { KanbanCard, KanbanColumn, Priority } from "../types";
 import { createId } from "../data/storage";
 
@@ -17,6 +17,10 @@ export default function AddTaskModal({ open, onClose, onCreate, defaultColumnId,
   const [priority, setPriority] = useState<Priority>("medium");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [checklistInput, setChecklistInput] = useState("");
+  const [checklist, setChecklist] = useState<KanbanCard["checklist"]>([]);
 
   useEffect(() => {
     if (open) {
@@ -25,13 +29,36 @@ export default function AddTaskModal({ open, onClose, onCreate, defaultColumnId,
       setDescription("");
       setPriority("medium");
       setDueDate("");
+      setTagInput("");
+      setTags([]);
+      setChecklistInput("");
+      setChecklist([]);
     }
   }, [open, defaultColumnId, columns]);
 
   if (!open) return null;
 
+  const addTag = () => {
+    const value = tagInput.trim().replace(/^#/, "");
+    if (!value || tags.some((tag) => tag.toLowerCase() === value.toLowerCase())) return;
+    setTags((current) => [...current, value]);
+    setTagInput("");
+  };
+
+  const removeTag = (tag: string) => setTags((current) => current.filter((item) => item !== tag));
+
+  const addChecklistItem = () => {
+    const value = checklistInput.trim();
+    if (!value) return;
+    setChecklist((current) => [...current, { id: createId("check"), text: value, completed: false }]);
+    setChecklistInput("");
+  };
+
+  const removeChecklistItem = (id: string) => setChecklist((current) => current.filter((item) => item.id !== id));
+
   const submit = () => {
     if (!title.trim() || !columnId) return;
+    addTag();
     const stamp = new Date().toISOString();
     onCreate(
       {
@@ -39,9 +66,9 @@ export default function AddTaskModal({ open, onClose, onCreate, defaultColumnId,
         title: title.trim(),
         description: description.trim(),
         priority,
-        tags: [],
+        tags,
         dueDate: dueDate || null,
-        checklist: [],
+        checklist,
         createdAt: stamp,
         updatedAt: stamp,
       },
@@ -54,9 +81,10 @@ export default function AddTaskModal({ open, onClose, onCreate, defaultColumnId,
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div className="task-modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div>
-            <span className="eyebrow">New task</span>
-            <h2>Create something to move forward</h2>
+          <div className="modal-title-block">
+            <span className="eyebrow">New issue</span>
+            <h2>Create task</h2>
+            <p>Capture the work, context and next steps.</p>
           </div>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Close">
             <X size={19} />
@@ -64,8 +92,8 @@ export default function AddTaskModal({ open, onClose, onCreate, defaultColumnId,
         </div>
 
         <div className="modal-body">
-          <label className="field">
-            <span>Task title</span>
+          <label className="field field-title">
+            <span>Summary</span>
             <input
               autoFocus
               value={title}
@@ -81,7 +109,7 @@ export default function AddTaskModal({ open, onClose, onCreate, defaultColumnId,
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              placeholder="Add useful context, links or notes..."
+              placeholder="Add useful context, links or acceptance notes..."
             />
           </label>
 
@@ -103,10 +131,71 @@ export default function AddTaskModal({ open, onClose, onCreate, defaultColumnId,
             </label>
           </div>
 
-          <label className="field">
-            <span>Due date <small>optional</small></span>
-            <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </label>
+          <div className="field-grid">
+            <label className="field">
+              <span>Due date <small>optional</small></span>
+              <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </label>
+            <div className="field">
+              <span><Tag size={13} /> Tags</span>
+              <div className="token-input">
+                {tags.map((tag) => (
+                  <button className="token" key={tag} type="button" onClick={() => removeTag(tag)} title="Remove tag">
+                    #{tag}<X size={11} />
+                  </button>
+                ))}
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      addTag();
+                    }
+                  }}
+                  placeholder={tags.length ? "Add tag..." : "e.g. frontend"}
+                />
+              </div>
+            </div>
+          </div>
+
+          <section className="create-checklist">
+            <div className="create-section-heading">
+              <div>
+                <span><CheckSquare size={14} /> Checklist</span>
+                <small>{checklist.length ? `${checklist.length} step${checklist.length === 1 ? "" : "s"}` : "Optional"}</small>
+              </div>
+            </div>
+            <div className="checklist-entry">
+              <input
+                value={checklistInput}
+                onChange={(e) => setChecklistInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addChecklistItem();
+                  }
+                }}
+                placeholder="Add a step and press Enter"
+              />
+              <button className="small-button" type="button" onClick={addChecklistItem} disabled={!checklistInput.trim()}>
+                <Plus size={14} /> Add
+              </button>
+            </div>
+            {checklist.length > 0 && (
+              <div className="create-checklist-list">
+                {checklist.map((item, index) => (
+                  <div className="create-checklist-item" key={item.id}>
+                    <span>{index + 1}</span>
+                    <strong>{item.text}</strong>
+                    <button type="button" onClick={() => removeChecklistItem(item.id)} aria-label={`Remove ${item.text}`}>
+                      <X size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         <div className="modal-footer">
