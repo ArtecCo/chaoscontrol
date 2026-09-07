@@ -1,5 +1,7 @@
-import { Bell, Command, Menu, Moon, Search, Sun } from "lucide-react";
+import { Bell, Command, LogOut, Menu, Moon, Search, Sun } from "lucide-react";
+import { signOut } from "firebase/auth";
 import IconButton from "./IconButton";
+import { auth } from "../firebase";
 
 interface Props {
   boardTitle: string;
@@ -11,6 +13,11 @@ interface Props {
 }
 
 export default function Topbar({ boardTitle, search, setSearch, theme, onToggleTheme, onMenu }: Props) {
+  const handleSignOut = async () => {
+    if (!auth) return;
+    await signOut(auth);
+  };
+
   return (
     <header className="topbar">
       <div className="mobile-brand">
@@ -39,7 +46,9 @@ export default function Topbar({ boardTitle, search, setSearch, theme, onToggleT
         <IconButton label={theme === "light" ? "Use dark mode" : "Use light mode"} onClick={onToggleTheme}>
           {theme === "light" ? <Moon size={17} /> : <Sun size={17} />}
         </IconButton>
-        <div className="avatar" aria-label="Your profile">ME</div>
+        <button className="avatar avatar-button" type="button" onClick={handleSignOut} aria-label="Sign out" title="Sign out">
+          <LogOut size={15} />
+        </button>
       </div>
     </header>
   );
