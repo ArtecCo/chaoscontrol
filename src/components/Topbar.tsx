@@ -1,4 +1,4 @@
-import { Bell, Menu, Moon, Search, Sun } from "lucide-react";
+import { Bell, Command, Menu, Moon, Search, Sun } from "lucide-react";
 import IconButton from "./IconButton";
 
 interface Props {
@@ -10,42 +10,36 @@ interface Props {
   onMenu: () => void;
 }
 
-export default function Topbar({
-  boardTitle,
-  search,
-  setSearch,
-  theme,
-  onToggleTheme,
-  onMenu,
-}: Props) {
+export default function Topbar({ boardTitle, search, setSearch, theme, onToggleTheme, onMenu }: Props) {
   return (
     <header className="topbar">
       <div className="mobile-brand">
         <button className="mobile-menu" type="button" onClick={onMenu} aria-label="Open menu">
-          <Menu size={20} />
+          <Menu size={19} />
         </button>
         <strong>{boardTitle}</strong>
       </div>
 
       <div className="search-box">
-        <Search size={17} />
+        <Search size={16} />
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search tasks..."
+          placeholder="Search tasks, tags or descriptions..."
           aria-label="Search tasks"
         />
-        {search && <button onClick={() => setSearch("")} type="button">Esc</button>}
+        <span className="search-shortcut"><Command size={11} /> K</span>
+        {search && <button onClick={() => setSearch("")} type="button">Clear</button>}
       </div>
 
       <div className="top-actions">
         <IconButton label="Notifications">
-          <Bell size={18} />
+          <Bell size={17} />
         </IconButton>
         <IconButton label={theme === "light" ? "Use dark mode" : "Use light mode"} onClick={onToggleTheme}>
-          {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          {theme === "light" ? <Moon size={17} /> : <Sun size={17} />}
         </IconButton>
-        <div className="avatar">ME</div>
+        <div className="avatar" aria-label="Your profile">ME</div>
       </div>
     </header>
   );
