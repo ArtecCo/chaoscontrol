@@ -1,4 +1,4 @@
-import { Filter, ListFilter, Plus, SlidersHorizontal } from "lucide-react";
+import { Filter, Plus, SlidersHorizontal } from "lucide-react";
 import type { Priority } from "../types";
 
 interface Props {
@@ -12,31 +12,21 @@ export default function FilterBar({ priority, setPriority, onAddTask, onAddColum
   return (
     <div className="filter-bar">
       <div className="filter-left">
-        <button className="toolbar-button" type="button">
-          <ListFilter size={16} />
-          View
-        </button>
-        <label className="toolbar-select">
-          <Filter size={16} />
+        <div className="toolbar-context"><Filter size={14} /><span>Filter</span></div>
+        <label className={`toolbar-select ${priority !== "all" ? "active" : ""}`}>
           <span>Priority</span>
           <select value={priority} onChange={(e) => setPriority(e.target.value as Priority | "all")}>
-            <option value="all">All</option>
+            <option value="all">All priorities</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
         </label>
-        <button className="toolbar-button desktop-only" type="button" onClick={onAddColumn}>
-          <SlidersHorizontal size={16} />
-          Add column
-        </button>
+        {priority !== "all" && <button className="filter-chip" type="button" onClick={() => setPriority("all")}>Priority: {priority} ×</button>}
+        <button className="toolbar-button desktop-only" type="button" onClick={onAddColumn}><SlidersHorizontal size={14} /> Add column</button>
       </div>
-
-      <button className="primary-button" type="button" onClick={onAddTask}>
-        <Plus size={17} />
-        <span>Add task</span>
-      </button>
+      <button className="primary-button" type="button" onClick={onAddTask}><Plus size={16} /><span>Create issue</span></button>
     </div>
   );
 }
