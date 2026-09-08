@@ -4,6 +4,7 @@ import App from "./App";
 import AuthGate from "./auth/AuthGate";
 import "./styles.css";
 import "./professional.css";
+import "./youtrack-layout.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
